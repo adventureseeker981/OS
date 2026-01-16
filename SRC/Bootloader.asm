@@ -1,12 +1,14 @@
 [org 0x7c00]
 
 mov bx, 0
-char:
-	times 256 db 0 
+char: times 256 db 0 
 input:
+
 	mov ah, 0x00
 	int 0x16
 	mov ah, 0x0e
+	cmp bx, 255
+	je out1
 	cmp al, 13
 	je out1
 	int 0x10
@@ -18,8 +20,7 @@ out1:
 	mov ah, 0x0e
 	mov bx, 0
 	jmp loop0
-String:
-	db 10,13,"Hello, Welcome to my bootloader!",0
+String: db 10,13,"Hello, Welcome to my bootloader! ",0
 loop0:
 	mov al, [String+bx]
 	int 0x10
@@ -43,9 +44,7 @@ String1:
 	mov ah, 0x0e
 	mov bx, 0
 	jmp loop2
-Stringl:
-	
-	db "Sir",0
+Stringl: db " Sir",0
 loop2:
 	mov al, [Stringl+bx]
 	int 0x10
