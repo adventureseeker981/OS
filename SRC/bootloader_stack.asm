@@ -1,6 +1,7 @@
 org 0x7c00
 
 mov bx, 0
+
 jmp start
 
 digits: db "123456789", 0
@@ -14,6 +15,7 @@ start:
     cmp al, 0
     je loop_out
     jmp start
+    
 loop_out:
     push ax
     mov al, 10
@@ -24,6 +26,7 @@ loop_out:
     int 0x10
     pop ax
     jmp loop
+    
 loop:
     pop ax
     int 0x10

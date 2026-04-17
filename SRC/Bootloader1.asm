@@ -58,6 +58,32 @@ loop2:
 	je end
 	jmp loop2
 
+mov bx, 0
+mov cx, bx
+
+
+; input:
+;     mov ah, 0x00
+;     int 0x16
+;     mov ah, 0x0e
+;     int 0x10
+    
+;     cmp al, 13
+;     je print
+;     push bx
+;     mov bl, al
+;     jmp input
+    
+; print:
+;     mov ah, 0x0e
+;     mov al, bl
+;     int 0x10
+;     pop bx
+;     cmp bl, 0
+;     je end
+;     jmp print
+    
+
 end:
 	jmp $
 	times 510-($-$$) db 0
