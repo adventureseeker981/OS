@@ -1,6 +1,32 @@
 [org 0x7c00]
+;Setting kernel Now at address 1000
+KERNEL_START equ 0x1000
 
-mov [Boot_disk], dl
+;Booting From The Disk
+BOOT_DISK: DB 0
+
+
+mov [BOOT_DISK], dl
+xor ax, ax
+mov es, ax
+mov ds, ax
+mov bp, 0x8000
+mov sp, bp
+
+mov bx, KERNEL_START
+mov dh, 20
+
+mov ah, 0x02
+mov al, dh
+mov ch, 0
+mov dh, 0
+mov cl, 2
+mov dl, [BOOT_DISK]
+int 0x13
+
+mov ah, 0x0
+mov al, 0x3
+int 0x10
 
 CODE_SEG equ code_descriptor - GDT_Start
 DATA_SEG equ data_descriptor - GDT_Start
@@ -46,28 +72,18 @@ GDT_descriptor:
     dd GDT_Start
 
 [bits 32]
-
 start_PM:
-    ; Assume EDI is the video memory pointer, ESI is the string pointer
-    mov edi, 0xB8500      ; Start of video memory
-    mov esi, my_string    ; Source string address
-    mov ah, 0x0b          ; White text on black background
-    mov ecx, 11            ; Loop 5 times (for "Hello")
+    mov ax, DATA_SEG
+    mov es, ax
+    mov ds, ax
+    mov ss, ax
+    mov fs, ax
+    mov gs, ax
+    mov ebp, 0x9000
+    mov esp, ebp
     
-    print_loop:
-        mov al, [esi]     ; Load character from string
-        mov [edi], ax     ; Store character + attribute in video memory
-        add esi, 1        ; Move to next char in source string
-        add edi, 2        ; Move to next screen position (2 bytes per char)
-        loop print_loop   ; Decrement ECX and repeat if > 0
-    
-    my_string db "Radhe Radhe"
+    jmp KERNEL_START
 
-    
-Boot_disk: db 0
-    
 times 510-($-$$) db 0
 dw 0xAA55
 
-        
-        
