@@ -3,6 +3,7 @@
 #include "../Headers/shell.h"
 #include "../Headers/keyboard.h"
 #include "../Headers/ports.h"
+#include "../Headers/kernel.h"
 /** ** MODIFIED: Updated to use new vga.h header (teammate's changes) ** **/
 #include "../Headers/vga.h"
 
@@ -32,7 +33,7 @@ void shell_print(const char *str, unsigned int color) {
 
 void shell_println(const char *str, unsigned int color) {
   printClr((unsigned char *)str, color);
-  printClr("\n", color);
+  printClr((unsigned char *)"\n", color);
 }
 
 void shell_clear_screen(void) {
@@ -223,7 +224,25 @@ void shell_init(void) {
   fs.current_dir[1] = '\0';
 
   shell_clear_screen();
-  shell_println("=== Basic OS Shell ===", COLOR_LIGHT_GREEN);
+  shell_println("                 ___====-_  _-====___", COLOR_RED);
+  shell_println("           _--^^^#####//      \\#####^^^--_", COLOR_RED);
+  shell_println("        _-^##########// (    ) \\##########^-_", COLOR_RED);
+  shell_println("       _############//  |\\^^/|  \\############", COLOR_RED);
+  shell_println("     _/############//   (@::@)   \\############\\_", COLOR_RED);
+  shell_println("    /#############((     \\\\//     ))#############|", COLOR_RED);
+  shell_println("   -###############\\\\    (oo)    //###############|", COLOR_RED);
+  shell_println("  -#################\\\\  / VV \\  //#################|", COLOR_RED);
+  shell_println(" -###################\\\\/      \\//###################|", COLOR_RED);
+  shell_println("_#/|##########/\\######(   /\\   )######/\\##########|\\#_", COLOR_RED);
+  shell_println("|/ |#/\\#/\\#/\\/  \\#/\\##\\  |  |  /##/\\#/  \\/\\#/\\#/\\#| \\|", COLOR_RED);
+  shell_println("`  |/  V  V  `   V  \\#\\| |  | |/#/  V   '  V  V  \\|  '", COLOR_RED);
+  shell_println("   `   `  `      `   / | |  | | \\   '      '  '   '", COLOR_RED);
+  shell_println("                    (  | |  | |  )", COLOR_RED);
+  shell_println("                   __\\ | |  | | /__", COLOR_RED);
+  shell_println("                   ((VVV)(VVV)vvv))", COLOR_RED);
+  
+  shell_println("\n\n== Shell Written By Anjana ==", COLOR_LIGHT_GREEN);
+  shell_println("== Kernel By Vinayak ==", COLOR_LIGHT_GREEN);
   shell_println("Type 'help' for commands", COLOR_LIGHT_GREEN);
   putChar('\n', COLOR_BLACK);
 }
