@@ -1,7 +1,7 @@
-
-/** ** MODIFIED: Cleaned up includes - removed duplicates and old vgaColors.h reference ** **/
 #include "../Headers/ports.h"
+#include "../Headers/kernel.h"
 #include "../Headers/shell.h"
+#include "../Headers/STDLIB/String.h"
 
 
 extern void kernel_main(){

@@ -6,24 +6,14 @@
 #include "../Headers/kernel.h"
 /** ** MODIFIED: Updated to use new vga.h header (teammate's changes) ** **/
 #include "../Headers/vga.h"
+#include "../Headers/filesystem.h"
+
 
 #define MAX_CMD_LEN 256
 #define MAX_PATH_LEN 256
 #define MAX_FILES 32
 
-typedef struct {
-  char name[64];
-  char content[512];
-  int is_dir;
-} File;
-
-typedef struct {
-  File files[MAX_FILES];
-  int file_count;
-  char current_dir[MAX_PATH_LEN];
-} Filesystem;
-
-static Filesystem fs;
+static FileSystem fs;
 static unsigned int cursor = 0;
 static unsigned short *vidmem = (unsigned short*) 0xb8000;
 
@@ -79,6 +69,26 @@ void shell_read_line(char *buffer, int max_len) {
     putChar(ascii, COLOR_LIGHT_GREEN);
   }
 }
+void ascii(void){
+    shell_println("                 ___====-_  _-====___", COLOR_RED);
+    shell_println("           _--^^^#####//      \\#####^^^--_", COLOR_RED);
+    shell_println("        _-^##########// (    ) \\##########^-_", COLOR_RED);
+    shell_println("       _############//  |\\^^/|  \\############", COLOR_RED);
+    shell_println("     _/############//   (@::@)   \\############\\_", COLOR_RED);
+    shell_println("    /#############((     \\\\//     ))#############|", COLOR_RED);
+    shell_println("   -###############\\\\    (oo)    //###############|", COLOR_RED);
+    shell_println("  -#################\\\\  / VV \\  //#################|", COLOR_RED);
+    shell_println(" -###################\\\\/      \\//###################|", COLOR_RED);
+    shell_println("_#/|##########/\\######(   /\\   )######/\\##########|\\#_", COLOR_RED);
+    shell_println("|/ |#/\\#/\\#/\\/  \\#/\\##\\  |  |  /##/\\#/  \\/\\#/\\#/\\#| \\|", COLOR_RED);
+    shell_println("`  |/  V  V  `   V  \\#\\| |  | |/#/  V   '  V  V  \\|  '", COLOR_RED);
+    shell_println("   `   `  `      `   / | |  | | \\   '      '  '   '", COLOR_RED);
+    shell_println("                    (  | |  | |  )", COLOR_RED);
+    shell_println("                   __\\ | |  | | /__", COLOR_RED);
+    shell_println("                   ((VVV)(VVV)vvv))", COLOR_RED);
+    putChar('\n', COLOR_BLACK);
+    
+}
 
 void cmd_pwd(void) {
   shell_print("Current Dir: ", COLOR_YELLOW);
@@ -92,7 +102,7 @@ void cmd_ls(void) {
   }
   for (int i = 0; i < fs.file_count; i++) {
     shell_print(fs.files[i].name, COLOR_LIGHT_CYAN);
-    if (fs.files[i].is_dir) {
+    if (fs.files[i].file_or_dir) {
       shell_print("/", COLOR_LIGHT_CYAN);
     }
     putChar(' ', COLOR_LIGHT_CYAN);
@@ -106,7 +116,7 @@ void cmd_ls_l(void) {
     return;
   }
   for (int i = 0; i < fs.file_count; i++) {
-    if (fs.files[i].is_dir) {
+    if (fs.files[i].file_or_dir) {
       shell_print("d", COLOR_LIGHT_BLUE);
     } else {
       shell_print("-", COLOR_LIGHT_CYAN);
@@ -116,8 +126,30 @@ void cmd_ls_l(void) {
     putChar('\n', COLOR_LIGHT_CYAN);
   }
 }
+void cmd_echo(const char *str, int put_in_file, const char *filename) {
+    if (put_in_file) {
+        int idx = fs.file_count++;
+        int j = 0;
+        while (filename[j] && j < 63) {
+            if (fs.files[j].name == filename) {
+                int i = 0;
+                while (str[i]) {
+                    fs.files[j].data[i] = str[i];
+                    i++;
+                }
+                fs.files[j].data[j] = '\0';
+                return;
+            }
+            j++;
+        }
+    }
+    else {
+        shell_print(str, COLOR_LIGHT_CYAN);
+        putChar('\n', COLOR_LIGHT_CYAN);
+    }
+}
 
-void cmd_touch(const char *filename) {
+void cmd_touch(const char *filename, int is_dir) {
   if (fs.file_count >= MAX_FILES) {
     shell_println("ERROR: Too many files", COLOR_RED);
     return;
@@ -136,9 +168,13 @@ void cmd_touch(const char *filename) {
     j++;
   }
   fs.files[idx].name[j] = '\0';
-  fs.files[idx].content[0] = '\0';
-  fs.files[idx].is_dir = 0;
-  shell_println("File created", COLOR_GREEN);
+  fs.files[idx].data[0] = '\0';
+  fs.files[idx].file_or_dir = is_dir;
+  if (is_dir) {
+    shell_println("Directory created", COLOR_GREEN);
+  } else {
+    shell_println("File created", COLOR_GREEN);
+  }
 }
 
 void cmd_cat(const char *filename) {
@@ -147,8 +183,8 @@ void cmd_cat(const char *filename) {
     return;
   }
   for (int i = 0; i < fs.file_count; i++) {
-    if (fs.files[i].name[0] == filename[0] && fs.files[i].is_dir == 0) {
-      shell_println(fs.files[i].content, COLOR_LIGHT_CYAN);
+    if (fs.files[i].name[0] == filename[0] && fs.files[i].file_or_dir == 0) {
+      shell_println(fs.files[i].data, COLOR_LIGHT_CYAN);
       return;
     }
   }
@@ -167,6 +203,7 @@ void cmd_cd(const char *dirname) {
 void shell_parse_command(const char *cmd) {
   char command[64];
   char arg[256];
+  char arg2[256];
   int i = 0, j = 0;
 
   while (cmd[i] && cmd[i] != ' ') {
@@ -181,10 +218,28 @@ void shell_parse_command(const char *cmd) {
     arg[j++] = cmd[i++];
   }
   arg[j] = '\0';
+  
 
   if (command[0] == 'p' && command[1] == 'w' && command[2] == 'd') {
     cmd_pwd();
-  } else if (command[0] == 'l' && command[1] == 's') {
+  }
+  else if (command[0] == 'e' && command[1] == 'c' && command[2] == 'h' && command[3] == 'o') {
+      if (cmd[i] == ' ')
+        i++;
+      j = 0;
+      while (cmd[i]!= '.') {
+        i++;
+        j++;
+      }
+      i++;
+      j = 0;
+      while (cmd[i]) {
+        arg2[j++] = cmd[i++];
+      }
+      arg2[j] = '\0';
+      cmd_echo(arg, 0, arg2);
+  }
+  else if (command[0] == 'l' && command[1] == 's') {
     if (arg[0] == '-' && arg[1] == 'l') {
       cmd_ls_l();
     } else {
@@ -192,15 +247,27 @@ void shell_parse_command(const char *cmd) {
     }
   } else if (command[0] == 't' && command[1] == 'o' && command[2] == 'u' &&
              command[3] == 'c' && command[4] == 'h') {
-    cmd_touch(arg);
-  } else if (command[0] == 'c' && command[1] == 'a' && command[2] == 't') {
+                 if (arg[0] == '-' && arg[1] == 'd') {
+                   cmd_touch(arg,1);
+                 } else {
+                   cmd_touch(arg,0);
+                 }
+  } 
+  else if (command[0] == 'c' && command[1] == 'a' && command[2] == 't') {
     cmd_cat(arg);
-  } else if (command[0] == 'c' && command[1] == 'd') {
+  } 
+  else if (command[0] == 'c' && command[1] == 'd') {
     cmd_cd(arg);
-  } else if (command[0] == 'c' && command[1] == 'l' && command[2] == 'e' &&
+  } 
+  else if (command[0] == 'c' && command[1] == 'l' && command[2] == 'e' &&
              command[3] == 'a' && command[4] == 'r') {
     shell_clear_screen();
-  } else if (command[0] == 'h' && command[1] == 'e' && command[2] == 'l' &&
+  }
+  else if (command[0] == 'a' && command[1] == 's' && command[2] == 'c' &&
+             command[3] == 'i' && command[4] == 'i') {
+                 ascii();
+  }
+  else if (command[0] == 'h' && command[1] == 'e' && command[2] == 'l' &&
              command[3] == 'p') {
     shell_println("=== Basic Shell Commands ===", COLOR_LIGHT_MAGENTA);
     shell_println("pwd        - Print working directory",
@@ -208,9 +275,11 @@ void shell_parse_command(const char *cmd) {
     shell_println("ls         - List files", COLOR_LIGHT_MAGENTA);
     shell_println("ls -l      - Detailed file list", COLOR_LIGHT_MAGENTA);
     shell_println("touch FILE - Create empty file", COLOR_LIGHT_MAGENTA);
+    shell_println("echo \"content\" > FILE - edits file", COLOR_LIGHT_MAGENTA);
     shell_println("cat FILE   - Display file contents", COLOR_LIGHT_MAGENTA);
     shell_println("cd ../     - Change directory", COLOR_LIGHT_MAGENTA);
     shell_println("clear      - Clear screen", COLOR_LIGHT_MAGENTA);
+    shell_println("ascii      - show art", COLOR_LIGHT_MAGENTA);
   } else if (command[0] != '\0') {
     shell_print("ERROR: Unknown command '", COLOR_RED);
     shell_print(command, COLOR_RED);

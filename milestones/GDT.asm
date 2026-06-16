@@ -21,7 +21,7 @@ GDT_Start:
     code_descriptor:
         dw 0xffff
         dw 0x0 ; 16 bit +
-        db 0x0 ; 8 bits = 24 bits 
+        db 0x0 ; 8 bits = 24 bits
         db 0b10011010
         ;  pre
         ;   priv
@@ -31,14 +31,14 @@ GDT_Start:
     data_descriptor:
         dw 0xffff
         dw 0x0 ; 16 bit +
-        db 0x0 ; 8 bits = 24 bits 
+        db 0x0 ; 8 bits = 24 bits
         db 0b10010010
         ;    pre
         ;     priv
         ;      type flags
         db 0b11001111
         db 0
-        
+
 GDT_end:
 
 GDT_descriptor:
@@ -53,21 +53,18 @@ start_PM:
     mov esi, my_string    ; Source string address
     mov ah, 0x0b          ; White text on black background
     mov ecx, 11            ; Loop 5 times (for "Hello")
-    
+
     print_loop:
         mov al, [esi]     ; Load character from string
         mov [edi], ax     ; Store character + attribute in video memory
         add esi, 1        ; Move to next char in source string
         add edi, 2        ; Move to next screen position (2 bytes per char)
         loop print_loop   ; Decrement ECX and repeat if > 0
-    
+
     my_string db "Radhe Radhe"
 
-    
+
 Boot_disk: db 0
-    
+
 times 510-($-$$) db 0
 dw 0xAA55
-
-        
-        
